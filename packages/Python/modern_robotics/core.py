@@ -13,59 +13,65 @@ Also available in: MATLAB, Mathematica
 Required library: numpy
 Optional library: matplotlib
 ***************************************************************************
+翻译：Lr_2002_
+***************************************************************************
+
 '''
 
 '''
 *** IMPORTS ***
+***   导入   ***
 '''
 
 import numpy as np
 
 '''
 *** BASIC HELPER FUNCTIONS ***
+***       基础help函数       ***
 '''
 
 def NearZero(z):
-    """Determines whether a scalar is small enough to be treated as zero
+    """验证一个数是否接近0
+    :param z: 需要验证的数
+    :return: 如果z接近0，返回 True，否则返回False
 
-    :param z: A scalar input to check
-    :return: True if z is close to zero, false otherwise
-
-    Example Input:
+    示例输入:
         z = -1e-7
-    Output:
+    示例输出:
         True
     """
     return abs(z) < 1e-6
 
 def Normalize(V):
-    """Normalizes a vector
+    """向量归一化函数
 
-    :param V: A vector
-    :return: A unit vector pointing in the same direction as z
+    :param V: 需要归一化处理的向量
+    :return: 和原向量同方向的单位向量
 
-    Example Input:
+    示例输入:
         V = np.array([1, 2, 3])
-    Output:
+    示例输出:
         np.array([0.26726124, 0.53452248, 0.80178373])
     """
     return V / np.linalg.norm(V)
+    # norm 计算的是平方和之开方
 
 '''
 *** CHAPTER 3: RIGID-BODY MOTIONS ***
+***         操作臂运动学            ***
 '''
 
 def RotInv(R):
-    """Inverts a rotation matrix
+    """旋转矩阵求逆
 
-    :param R: A rotation matrix
-    :return: The inverse of R
+    :param R: 旋转矩阵
+    :return: R 的逆矩阵
 
-    Example Input:
+    示例输入:
         R = np.array([[0, 0, 1],
                       [1, 0, 0],
                       [0, 1, 0]])
-    Output:
+    示例输出:
         np.array([[0, 1, 0],
                   [0, 0, 1],
                   [1, 0, 0]])
@@ -73,14 +79,17 @@ def RotInv(R):
     return np.array(R).T
 
 def VecToso3(omg):
-    """Converts a 3-vector to an so(3) representation
+    """把一个3维向量转换成一个旋转群表示法
+    解释：这里主要采用的是欧拉角
+    通过旋转群的概念，能够将欧拉角变成一个矩阵
+    再通过矩阵乘法计算出旋转矩阵
 
-    :param omg: A 3-vector
-    :return: The skew symmetric representation of omg
+    :param omg: 一个三元向量
+    :return: omg
 
-    Example Input:
+    示例输入:
         omg = np.array([1, 2, 3])
-    Output:
+    示例输出:
         np.array([[ 0, -3,  2],
                   [ 3,  0, -1],
                   [-2,  1,  0]])
@@ -90,75 +99,80 @@ def VecToso3(omg):
                      [-omg[1], omg[0],       0]])
 
 def so3ToVec(so3mat):
-    """Converts an so(3) representation to a 3-vector
+    """把一个旋转群转换成一个向量
 
-    :param so3mat: A 3x3 skew-symmetric matrix
-    :return: The 3-vector corresponding to so3mat
+    :param so3mat: 一个omg矩阵
+    :return: 转换过后的矩阵
 
-    Example Input:
+
+    示例输入:
         so3mat = np.array([[ 0, -3,  2],
                            [ 3,  0, -1],
                            [-2,  1,  0]])
-    Output:
+    示例输出:
         np.array([1, 2, 3])
     """
     return np.array([so3mat[2][1], so3mat[0][2], so3mat[1][0]])
 
 def AxisAng3(expc3):
-    """Converts a 3-vector of exponential coordinates for rotation into
-    axis-angle form
+    """将一个矩阵转换成一个轴角矩阵，所谓轴角矩阵，指的是一个轴或者一条直线，再加上一个角
 
-    :param expc3: A 3-vector of exponential coordinates for rotation
-    :return omghat: A unit rotation axis
-    :return theta: The corresponding rotation angle
+    :param expc3: 需要转换的3维向量
+    :return omghat: 三个数组成的向量，表示的是一个轴
+    :return theta: 角度
 
-    Example Input:
+    示例输入:
         expc3 = np.array([1, 2, 3])
-    Output:
+    示例输出:
         (np.array([0.26726124, 0.53452248, 0.80178373]), 3.7416573867739413)
     """
     return (Normalize(expc3), np.linalg.norm(expc3))
 
 def MatrixExp3(so3mat):
-    """Computes the matrix exponential of a matrix in so(3)
+    """计算旋转矩阵的指数指数矩阵
+    :param so3mat: 一个3x3的omega反对称矩阵,\omega 通常是角速度矩阵，与速度有关
+    :return: so3mat的指数矩阵
+    .. math:: R = I + \\omega * \\sin(theta) + \\omega * \\omega * (1 - \\cos(\\theta))
 
-    :param so3mat: A 3x3 skew-symmetric matrix
-    :return: The matrix exponential of so3mat
-
-    Example Input:
+    示例输入：
         so3mat = np.array([[ 0, -3,  2],
                            [ 3,  0, -1],
                            [-2,  1,  0]])
-    Output:
+    示例输出:
         np.array([[-0.69492056,  0.71352099,  0.08929286],
                   [-0.19200697, -0.30378504,  0.93319235],
                   [ 0.69297817,  0.6313497 ,  0.34810748]])
     """
     omgtheta = so3ToVec(so3mat)
     if NearZero(np.linalg.norm(omgtheta)):
-        return np.eye(3)
+        return np.eye(3) # 单位矩阵
+        # 如果矩阵本身靠近零，那么就是指数矩阵的第一中情况，e^0 = I
     else:
         theta = AxisAng3(omgtheta)[1]
+        # 选取角度
         omgmat = so3mat / theta
         return np.eye(3) + np.sin(theta) * omgmat \
-               + (1 - np.cos(theta)) * np.dot(omgmat, omgmat)
+               + (1 - np.cos(theta)) * np.dot(omgmat, omgmat)  # 指数矩阵的生成方法
+
 
 def MatrixLog3(R):
-    """Computes the matrix logarithm of a rotation matrix
-
-    :param R: A 3x3 rotation matrix
-    :return: The matrix logarithm of R
-
-    Example Input:
+    """计算一个旋转矩阵的对数矩阵
+    :param R: 一个3x3的旋转矩阵
+    :return: R的对数矩阵
+    本段算法的推导参看 https://zhuanlan.zhihu.com/p/369659467
+    示例输入:
         R = np.array([[0, 0, 1],
                       [1, 0, 0],
                       [0, 1, 0]])
-    Output:
+    示例输出:
         np.array([[          0, -1.20919958,  1.20919958],
                   [ 1.20919958,           0, -1.20919958],
                   [-1.20919958,  1.20919958,           0]])
     """
     acosinput = (np.trace(R) - 1) / 2.0
+    # tr R  = r_11 + r_22 + r_33 = 1 + 2* cos(theta)
+    # np.trace() 返回对角线之和
+    # acosinput = tr R - 1 /2 = cos(theta)
     if acosinput >= 1:
         return np.zeros((3, 3))
     elif acosinput <= -1:
@@ -173,23 +187,23 @@ def MatrixLog3(R):
                   * np.array([1 + R[0][0], R[1][0], R[2][0]])
         return VecToso3(np.pi * omg)
     else:
-        theta = np.arccos(acosinput)
+        theta = np.arccos(acosinput) # 直接求解角度即可
         return theta / 2.0 / np.sin(theta) * (R - np.array(R).T)
+        # \omega 的斜对称矩阵
+
 
 def RpToTrans(R, p):
-    """Converts a rotation matrix and a position vector into homogeneous
-    transformation matrix
+    """把旋转矩阵和位置向量转成转换矩阵
+    :param R: 3x3 旋转矩阵
+    :param p: 3维向量
+    :return: 转换过的矩阵
 
-    :param R: A 3x3 rotation matrix
-    :param p: A 3-vector
-    :return: A homogeneous transformation matrix corresponding to the inputs
-
-    Example Input:
+    示例输入:
         R = np.array([[1, 0,  0],
                       [0, 0, -1],
                       [0, 1,  0]])
         p = np.array([1, 2, 5])
-    Output:
+    示例:
         np.array([[1, 0,  0, 1],
                   [0, 0, -1, 2],
                   [0, 1,  0, 5],
@@ -198,19 +212,18 @@ def RpToTrans(R, p):
     return np.r_[np.c_[R, p], [[0, 0, 0, 1]]]
 
 def TransToRp(T):
-    """Converts a homogeneous transformation matrix into a rotation matrix
-    and position vector
+    """ 将转换矩阵变成旋转矩阵和位移向量
 
-    :param T: A homogeneous transformation matrix
-    :return R: The corresponding rotation matrix,
-    :return p: The corresponding position vector.
+    :param T: 转换矩阵
+    :return R: 旋转矩阵
+    :return p: 位移向量
 
-    Example Input:
+    示例输入:
         T = np.array([[1, 0,  0, 0],
                       [0, 0, -1, 0],
                       [0, 1,  0, 3],
                       [0, 0,  0, 1]])
-    Output:
+    示例输出:
         (np.array([[1, 0,  0],
                    [0, 0, -1],
                    [0, 1,  0]]),
@@ -220,19 +233,17 @@ def TransToRp(T):
     return T[0: 3, 0: 3], T[0: 3, 3]
 
 def TransInv(T):
-    """Inverts a homogeneous transformation matrix
+    """转换矩阵求逆（T_A_B {-1} = T _B_A)
 
-    :param T: A homogeneous transformation matrix
-    :return: The inverse of T
-    Uses the structure of transformation matrices to avoid taking a matrix
-    inverse, for efficiency.
-
-    Example input:
+    :param T: 需要转换的矩阵
+    :return: 转换过的矩阵
+    从结构的角度对矩阵求转置，以此节省时间，提高效率
+    示例输入:
         T = np.array([[1, 0,  0, 0],
                       [0, 0, -1, 0],
                       [0, 1,  0, 3],
                       [0, 0,  0, 1]])
-    Output:
+    示例输出:
         np.array([[1,  0, 0,  0],
                   [0,  0, 1, -3],
                   [0, -1, 0,  0],
@@ -243,52 +254,56 @@ def TransInv(T):
     return np.r_[np.c_[Rt, -np.dot(Rt, p)], [[0, 0, 0, 1]]]
 
 def VecTose3(V):
-    """Converts a spatial velocity vector into a 4x4 matrix in se3
+    """把一个空间速度向量转换成se(3)
+    se3 指的是旋转加上变换，也叫做欧式变换，刚体变换
+    :param V: 一个6维向量 代表空间速度变量
+    :return: 代表了速度的 4x4 矩阵
 
-    :param V: A 6-vector representing a spatial velocity
-    :return: The 4x4 se3 representation of V
-
-    Example Input:
+    示例输入:
         V = np.array([1, 2, 3, 4, 5, 6])
-    Output:
+    示例输出:
         np.array([[ 0, -3,  2, 4],
                   [ 3,  0, -1, 5],
                   [-2,  1,  0, 6],
                   [ 0,  0,  0, 0]])
+
+    从输入输出可以了解到，是前三个变量是角速度，后边三个变量是线速度
     """
     return np.r_[np.c_[VecToso3([V[0], V[1], V[2]]), [V[3], V[4], V[5]]],
                  np.zeros((1, 4))]
 
 def se3ToVec(se3mat):
-    """ Converts an se3 matrix into a spatial velocity vector
-
-    :param se3mat: A 4x4 matrix in se3
-    :return: The spatial velocity 6-vector corresponding to se3mat
-
-    Example Input:
+    """ 把se3 转换成向量，代表了空间速度
+    :param se3mat: 4x4 的se3矩阵
+    :return: 表示空间速度的6维向量
+    示例输入:
         se3mat = np.array([[ 0, -3,  2, 4],
                            [ 3,  0, -1, 5],
                            [-2,  1,  0, 6],
                            [ 0,  0,  0, 0]])
-    Output:
+    示例输出:
         np.array([1, 2, 3, 4, 5, 6])
     """
     return np.r_[[se3mat[2][1], se3mat[0][2], se3mat[1][0]],
                  [se3mat[0][3], se3mat[1][3], se3mat[2][3]]]
 
 def Adjoint(T):
-    """Computes the adjoint representation of a homogeneous transformation
-    matrix
+    """Adjoint表示的是转换矩阵的伴随表示，区别与伴随矩阵
+    研究他意义在于 通过伴随表示，能够将两个速度进行转换
+    本函数主要相关内容是
+    1. 机器人学导论： page.112 速度和静力
+    2. 现代机器人： chapter.3
+    通过反对称矩阵可以将叉乘转换成点乘
+    Rx 表示的就是R的斜对称矩阵
+    :param T:一个4x4的变换矩阵
+    :return:  一个6x6 的伴随矩阵
 
-    :param T: A homogeneous transformation matrix
-    :return: The 6x6 adjoint representation [AdT] of T
-
-    Example Input:
+    示例输入:
         T = np.array([[1, 0,  0, 0],
                       [0, 0, -1, 0],
                       [0, 1,  0, 3],
                       [0, 0,  0, 1]])
-    Output:
+    示例输出:
         np.array([[1, 0,  0, 0, 0,  0],
                   [0, 0, -1, 0, 0,  0],
                   [0, 1,  0, 0, 0,  0],
@@ -301,35 +316,33 @@ def Adjoint(T):
                  np.c_[np.dot(VecToso3(p), R), R]]
 
 def ScrewToAxis(q, s, h):
-    """Takes a parametric description of a screw axis and converts it to a
-    normalized screw axis
+    """对旋转轴有一个参数化的描述，同时将他转换成为一个归一化的转轴
+    参考推导过程： https://zhuanlan.zhihu.com/p/369718204
+    :param q: 一个在旋转轴上的点
+    :param s: 旋转轴方向上的单位向量
+    :param h: 螺距，
+    :return:输入所描述的单位化旋转轴
 
-    :param q: A point lying on the screw axis
-    :param s: A unit vector in the direction of the screw axis
-    :param h: The pitch of the screw axis
-    :return: A normalized screw axis described by the inputs
-
-    Example Input:
+    示例输入:
         q = np.array([3, 0, 0])
         s = np.array([0, 0, 1])
         h = 2
-    Output:
+    示例输出:
         np.array([0, 0, 1, 0, -3, 2])
     """
+    # todo 没有解决原理
     return np.r_[s, np.cross(q, s) + np.dot(h, s)]
 
 def AxisAng6(expc6):
-    """Converts a 6-vector of exponential coordinates into screw axis-angle
-    form
-
+    """把一个6维的指数向量转换成screw（螺丝角度）的表示方法
     :param expc6: A 6-vector of exponential coordinates for rigid-body motion
-                  S*theta
-    :return S: The corresponding normalized screw axis
-    :return theta: The distance traveled along/about S
+                  S*theta 用来描述机械臂运动的6维指数向量
+    :return S: 单位化的转轴向量
+    :return theta: 转轴下转动的举例
 
-    Example Input:
+    示例输入:
         expc6 = np.array([1, 0, 0, 1, 2, 3])
-    Output:
+    示例输出:
         (np.array([1.0, 0.0, 0.0, 1.0, 2.0, 3.0]), 1.0)
     """
     theta = np.linalg.norm([expc6[0], expc6[1], expc6[2]])
@@ -338,18 +351,17 @@ def AxisAng6(expc6):
     return (np.array(expc6 / theta), theta)
 
 def MatrixExp6(se3mat):
-    """Computes the matrix exponential of an se3 representation of
-    exponential coordinates
+    """将一个se3的矩阵转换成矩阵指数
 
-    :param se3mat: A matrix in se3
-    :return: The matrix exponential of se3mat
+    :param se3mat: se3 下的一个矩阵
+    :return: se3 矩阵的指数表示
 
-    Example Input:
+    示例输入:
         se3mat = np.array([[0,          0,           0,          0],
                            [0,          0, -1.57079632, 2.35619449],
                            [0, 1.57079632,           0, 2.35619449],
                            [0,          0,           0,          0]])
-    Output:
+    示例输出:
         np.array([[1.0, 0.0,  0.0, 0.0],
                   [0.0, 0.0, -1.0, 0.0],
                   [0.0, 1.0,  0.0, 3.0],
@@ -371,17 +383,17 @@ def MatrixExp6(se3mat):
                      [[0, 0, 0, 1]]]
 
 def MatrixLog6(T):
-    """Computes the matrix logarithm of a homogeneous transformation matrix
+    """计算转换矩阵的矩阵对数
 
-    :param R: A matrix in SE3
-    :return: The matrix logarithm of R
+    :param R: SE3的矩阵
+    :return: R对应的矩阵对数
 
-    Example Input:
+    示例输入:
         T = np.array([[1, 0,  0, 0],
                       [0, 0, -1, 0],
                       [0, 1,  0, 3],
                       [0, 0,  0, 1]])
-    Output:
+    示例输出:
         np.array([[0,          0,           0,           0]
                   [0,          0, -1.57079633,  2.35619449]
                   [0, 1.57079633,           0,  2.35619449]
